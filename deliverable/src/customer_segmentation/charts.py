@@ -473,23 +473,51 @@ SHARE_COLUMNS = {
 # Measures compared at three decimals in the narrative (0,472 against 0,480).
 THREE_DECIMALS = {"silhouette", "stability_min_ari"}
 
+# Amounts in MXN, shown in whole pesos.
+MONEY_COLUMNS = {"net_sales_3y", "median_avg_order_value"}
+
+
+def _is_number(value: object) -> bool:
+    return isinstance(value, numbers.Real) and not isinstance(value, bool | np.bool_)
+
 
 def _cell(value: object, decimals: int) -> object:
-    if isinstance(value, bool | np.bool_) or not isinstance(value, numbers.Real):
+    if not _is_number(value):
         return value
     if pd.isna(value):
         return ""
-    return number(value, 0 if float(value).is_integer() else decimals)
+    return number(value, decimals)
+
+
+def _mixed_cell(value: object) -> object:
+    # Columns that mix metrics (counts, amounts, ratios): counts and amounts in whole
+    # units, small ratios with one decimal.
+    if not _is_number(value) or pd.isna(value):
+        return _cell(value, 0)
+    whole = float(value).is_integer() or abs(value) >= 1000
+    return number(value, 0 if whole else 1)
 
 
 def table(df: pd.DataFrame) -> pd.DataFrame:
-    """The same table for display: Spanish headers, Spanish numbers, proportions as %."""
+    """The same table for display: Spanish headers, Spanish numbers, proportions as %.
+
+    Every numeric column uses the same number of decimals in all its rows.
+    """
     shown = df.copy()
     for col in shown.columns:
+        values = shown[col]
         if col in SHARE_COLUMNS:
-            shown[col] = shown[col].map(lambda v: "" if pd.isna(v) else f"{number(v * 100, 1)} %")
+            shown[col] = values.map(lambda v: "" if pd.isna(v) else f"{number(v * 100, 1)} %")
+        elif not pd.api.types.is_numeric_dtype(values) or pd.api.types.is_bool_dtype(values):
+            shown[col] = values.map(_mixed_cell)
         else:
-            decimals = 3 if col in THREE_DECIMALS else 2
-            shown[col] = shown[col].map(lambda v, d=decimals: _cell(v, d))
+            present = values.dropna()
+            if col in THREE_DECIMALS:
+                decimals = 3
+            elif col in MONEY_COLUMNS or (present % 1 == 0).all():
+                decimals = 0
+            else:
+                decimals = 1
+            shown[col] = values.map(lambda v, d=decimals: _cell(v, d))
     index_name = COLUMN_LABELS.get(shown.index.name, shown.index.name)
     return shown.rename(columns=COLUMN_LABELS).rename_axis(index=index_name)
