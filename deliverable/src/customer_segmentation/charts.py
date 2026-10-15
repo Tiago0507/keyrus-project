@@ -70,12 +70,16 @@ def number(value: float, decimals: int = 0) -> str:
     return f"{value:,.{decimals}f}".translate(str.maketrans(",.", ".,"))
 
 
+def _pct(share: float) -> str:
+    return f"{number(share * 100)} %"
+
+
 def _millions(value: float) -> str:
     return f"{number(value / 1e6, 1)} M"
 
 
 def _percent_axis(ax: plt.Axes, axis: str = "y") -> None:
-    fmt = plt.FuncFormatter(lambda v, _: f"{v:.0%}")
+    fmt = plt.FuncFormatter(lambda v, _: _pct(v))
     (ax.yaxis if axis == "y" else ax.xaxis).set_major_formatter(fmt)
 
 
@@ -153,7 +157,7 @@ def launch_curve_chart(curve: pd.DataFrame) -> Figure:
     colors = [SERIES_1 if d == 0 else CONTEXT for d in curve["days_from"]]
     ax.bar(labels, curve["share_of_sales"], width=0.6, color=colors)
     first = curve["share_of_sales"].iloc[0]
-    ax.text(0, first, f"{first:.0%}", ha="center", va="bottom", fontweight="bold")
+    ax.text(0, first, _pct(first), ha="center", va="bottom", fontweight="bold")
     _percent_axis(ax)
     ax.set_xlabel("Días desde el lanzamiento de la colección (inicio de cada tramo de 30 días)")
     ax.grid(axis="x", visible=False)
@@ -330,7 +334,7 @@ def archetype_share_chart(profile: pd.DataFrame) -> Figure:
         label="% de la venta (3 años)",
     )
     for yi, share in zip(y, data["share_of_brand_sales_3y"], strict=True):
-        ax.text(share, yi - 0.17, f"  {share:.0%}", va="center", fontsize=9, color=INK)
+        ax.text(share, yi - 0.17, f"  {_pct(share)}", va="center", fontsize=9, color=INK)
     ax.set_yticks(y, data["name"])
     _percent_axis(ax, "x")
     ax.grid(axis="y", visible=False)
@@ -344,13 +348,13 @@ def archetype_share_chart(profile: pd.DataFrame) -> Figure:
 def archetype_heatmap(profile: pd.DataFrame) -> Figure:
     """What characterizes each archetype: each feature compared with the average archetype."""
     columns = {  # column: (label, number format)
-        "median_recency_days": ("Días desde\nla última compra", "{:.0f}"),
-        "median_orders": ("Órdenes", "{:.0f}"),
-        "median_avg_order_value": ("Ticket\npromedio", "{:,.0f}"),
-        "launch_participation": ("Participación en\nlanzamientos", "{:.0%}"),
-        "seasonal_share": ("% temporada\n(vs básicos)", "{:.0%}"),
-        "avg_discount_pct": ("Descuento\npromedio", "{:.0f} %"),
-        "online_share": ("% online", "{:.0%}"),
+        "median_recency_days": ("Días desde\nla última compra", number),
+        "median_orders": ("Órdenes", number),
+        "median_avg_order_value": ("Ticket\npromedio", number),
+        "launch_participation": ("Participación en\nlanzamientos", _pct),
+        "seasonal_share": ("% temporada\n(frente a básicos)", _pct),
+        "avg_discount_pct": ("Descuento\npromedio", lambda v: _pct(v / 100)),
+        "online_share": ("% online", _pct),
     }
     data = profile.dropna(subset=["median_recency_days"])[list(columns)].astype(float)
     z = (data - data.mean()) / data.std(ddof=0)
@@ -360,7 +364,7 @@ def archetype_heatmap(profile: pd.DataFrame) -> Figure:
     for i in range(z.shape[0]):
         for j, (_, fmt) in enumerate(columns.values()):
             ink = "white" if abs(z.iloc[i, j]) > 1.2 else INK
-            ax.text(j, i, fmt.format(data.iloc[i, j]), ha="center", va="center", fontsize=9,
+            ax.text(j, i, fmt(data.iloc[i, j]), ha="center", va="center", fontsize=9,
                     color=ink)  # fmt: skip
     ax.set_xticks(range(len(columns)), [label for label, _ in columns.values()], fontsize=8.5)
     ax.set_yticks(range(len(data)), profile.loc[data.index, "name"])
@@ -392,7 +396,7 @@ def purchase_month_chart(months: pd.DataFrame) -> Figure:
         ax.text(
             m + 0.18,
             hunters.iloc[m],
-            f"{hunters.iloc[m]:.0%}",
+            _pct(hunters.iloc[m]),
             ha="center",
             va="bottom",
             fontsize=9,
