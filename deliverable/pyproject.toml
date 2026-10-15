@@ -1,0 +1,40 @@
+[project]
+name = "customer-segmentation"
+version = "1.0.0"
+description = "Customer segmentation for a Mexican fashion brand (Keyrus AI & MarTech Developer Intern case)."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "pandas>=2.2",
+    "pyarrow>=16",
+    "python-dotenv>=1.0",
+    "scikit-learn>=1.5",
+    "matplotlib>=3.9",
+    "ipykernel>=6.29",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "ruff>=0.6",
+    "nbclient>=0.10",
+    "nbformat>=5.10",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/customer_segmentation"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = ["*.md"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

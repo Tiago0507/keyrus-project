@@ -1,0 +1,11 @@
+# Personal data and secrets: never versioned
+data/
+.env
+
+# Python and tooling
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.ipynb_checkpoints/

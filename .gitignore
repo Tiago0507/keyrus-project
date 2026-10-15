@@ -1,0 +1,21 @@
+# Personal data and secrets
+deliverable/data/
+deliverable/.env
+
+# Personal working files
+Caso_*.pdf
+Keyrus Pet*.pdf
+Photo_Profile.jpeg
+vacancy_about.md
+*.zip
+
+# Python and tooling
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# Slide deck source (rebuilds deliverable/slides/executive_summary.pdf)
+slides_source/
